@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import textwrap
 import urllib.parse
+from dotenv import load_dotenv # Import this explicitly
 
 # --- 1. CONFIGURATION & BRANDING ---
 st.set_page_config(
@@ -13,18 +14,26 @@ st.set_page_config(
     layout="centered"
 )
 
-# 1. Load the secret API key from the .env file
+# --- 2. SETUP API KEY ---
+# Load environment variables from .env file
 load_dotenv()
-api_key = os.environ.get("GROQ_API_KEY")
 
-# Initialize Groq (Ensure GROQ_API_KEY is in your .streamlit/secrets.toml)
-try:
-    client = Groq(api_key)
-except:
-    st.info("⚠️ Dev Mode: Set `GROQ_API_KEY` in secrets to run.")
+# Get key from .env OR Streamlit Secrets (for cloud deployment)
+api_key = os.getenv("GROQ_API_KEY")
+
+# Safety Check: Did we find the key?
+if not api_key:
+    st.error("⚠️ API Key missing! Please make sure you have a `.env` file with `GROQ_API_KEY=your_key_here`")
     st.stop()
 
-# --- 2. THE TRANSLATOR ENGINE (GROQ) ---
+# Initialize Groq Client
+try:
+    client = Groq(api_key=api_key)
+except Exception as e:
+    st.error(f"Failed to connect to Groq: {e}")
+    st.stop()
+
+# --- 3. THE TRANSLATOR ENGINE (GROQ) ---
 def get_translation(text):
     """
     Uses the LLM to extract the subtext.
@@ -58,7 +67,7 @@ def get_translation(text):
     except Exception as e:
         return "Error|Corporate jargon overload. Try again.|0"
 
-# --- 3. THE VIRAL CARD GENERATOR (PILLOW) ---
+# --- 4. THE VIRAL CARD GENERATOR (PILLOW) ---
 def create_shareable_card(quote, translation, score):
     """
     Generates a high-quality social media card (1080x1080).
@@ -120,7 +129,7 @@ def create_shareable_card(quote, translation, score):
 
     return img
 
-# --- 4. THE UI ---
+# --- 5. THE UI ---
 
 # Header Section
 st.markdown("<h1 style='text-align: center; color: #FFA500;'>Kind Regards.</h1>", unsafe_allow_html=True)
